@@ -1,0 +1,95 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "_artifactsLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "URL to location of linked templates"
+            }
+        },
+        "_artifactsLocationSasToken": {
+            "type": "securestring",
+            "metadata": {
+                "description": "SAS Token to access linked templates"
+            }
+        },
+        "env": {
+            "type": "string",
+            "allowedValues": [
+                "prod",
+                "dev"
+            ]
+        },
+        "servicePrincipalClientId": {
+            "type": "securestring"
+        },
+        "servicePrincipalClientSecret": {
+            "type": "securestring"
+        }
+    },
+    "variables": {
+        "AksUri": "[concat(parameters('_artifactsLocation'), '/linked/aks.json', parameters('_artifactsLocationSasToken'))]",
+        "AcrUri": "[concat(parameters('_artifactsLocation'), '/linked/acr.json', parameters('_artifactsLocationSasToken'))]"
+    },
+    "resources": [
+        {
+            "name": "AKS",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2019-05-01",
+            "dependsOn": [
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('AksUri')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "env": {
+                        "value": "[parameters('env')]"
+                    },
+                    "servicePrincipalClientId": {
+                        "value": "[parameters('servicePrincipalClientId')]"
+                    },
+                    "servicePrincipalClientSecret": {
+                        "value": "[parameters('servicePrincipalClientSecret')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "ACR",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2019-05-01",
+            "dependsOn": [
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('AcrUri')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "env": {
+                        "value": "[parameters('env')]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "clusterName": {
+            "type":"string",
+            "value":"[reference('AKS').outputs.clusterName.value]"
+        },
+        "acr":{
+            "type":"string",
+            "value":"[reference('ACR').outputs.acrLoginServer.value]"
+        },
+        "acrName":{
+            "type":"string",
+            "value":"[reference('ACR').outputs.acrName.value]"
+        }
+    }
+}
